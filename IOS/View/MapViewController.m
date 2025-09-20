@@ -6,14 +6,14 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 #import "MapViewController.h"
+#import "ActivityAttribute.h"
 #import "AppDelegate.h"
 #import "AppStrings.h"
 #import "LocationSensor.h"
-#import "Notifications.h"
-#import "Pin.h"
 #import "Preferences.h"
-#import "Segues.h"
 #import "StringUtils.h"
+#import "PathSmoothingUtils.h"
+#import "Segues.h"
 
 #define ACTION_SHEET_TITLE_AUTOSCALE NSLocalizedString(@"Autoscale", nil)
 #define ACTION_SHEET_TITLE_MAP_TYPE  NSLocalizedString(@"Select the map type", nil)
@@ -240,7 +240,28 @@ void KmlPlacemarkEnd(const char* name, void* context)
 
 - (void)showRoute:(CLLocationCoordinate2D*)points withPointCount:(size_t)pointCount withColor:(UIColor*)color withWidth:(CGFloat)width
 {
-	MKPolyline* routeLine = [MKPolyline polylineWithCoordinates:points count:pointCount];
+	MKPolyline* routeLine;
+	
+	// Apply path smoothing if enabled
+	if ([Preferences shouldSmoothPaths] && pointCount > 2)
+	{
+		NSArray<NSValue*>* smoothedPoints = [PathSmoothingUtils smoothCoordinates:points 
+																	   pointCount:pointCount 
+																  smoothingFactor:0.3f];
+		
+		CLLocationCoordinate2D* smoothedCoords = malloc(sizeof(CLLocationCoordinate2D) * [smoothedPoints count]);
+		for (NSUInteger i = 0; i < [smoothedPoints count]; i++)
+		{
+			smoothedCoords[i] = [[smoothedPoints objectAtIndex:i] MKCoordinateValue];
+		}
+		
+		routeLine = [MKPolyline polylineWithCoordinates:smoothedCoords count:[smoothedPoints count]];
+		free(smoothedCoords);
+	}
+	else
+	{
+		routeLine = [MKPolyline polylineWithCoordinates:points count:pointCount];
+	}
 
 	if (routeLine)
 	{

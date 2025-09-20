@@ -12,10 +12,13 @@
 #import "LocationSensor.h"
 #import "Preferences.h"
 #import "StringUtils.h"
+#import "SmoothedCrumbPathRenderer.h"
 
 #define ACTION_SHEET_TITLE_MAP_OPTIONS  NSLocalizedString(@"Map Options", nil)
 #define OPTION_AUTO_SCALE_ON            NSLocalizedString(@"Autoscale On", nil)
 #define OPTION_AUTO_SCALE_OFF           NSLocalizedString(@"Autoscale Off", nil)
+#define OPTION_SMOOTH_PATHS_ON          NSLocalizedString(@"Path Smoothing On", nil)
+#define OPTION_SMOOTH_PATHS_OFF         NSLocalizedString(@"Path Smoothing Off", nil)
 #define OPTION_STANDARD_VIEW            NSLocalizedString(@"Standard View", nil)
 #define OPTION_SATELLITE_VIEW           NSLocalizedString(@"Satellite View", nil)
 #define OPTION_HYBRID_VIEW              NSLocalizedString(@"Hybrid View", nil)
@@ -365,7 +368,15 @@
 	{
 		if (!self->crumbRenderer)
 		{
-			self->crumbRenderer = [[CrumbPathRenderer alloc] initWithOverlay:overlay];
+			// Use smoothed renderer if path smoothing is enabled
+			if ([Preferences shouldSmoothPaths])
+			{
+				self->crumbRenderer = [[SmoothedCrumbPathRenderer alloc] initWithOverlay:overlay];
+			}
+			else
+			{
+				self->crumbRenderer = [[CrumbPathRenderer alloc] initWithOverlay:overlay];
+			}
 
 			if (self->crumbRenderer)
 			{
@@ -398,6 +409,25 @@
 		[Preferences setAutoScaleMap:false];
 	}];
 
+	UIAlertAction* smoothOnBtn = [UIAlertAction actionWithTitle:OPTION_SMOOTH_PATHS_ON style:UIAlertActionStyleDefault handler:^(UIAlertAction* action) {
+		[Preferences setSmoothPaths:true];
+		// Reset the renderer to apply the new setting
+		self->crumbRenderer = nil;
+		if (self->crumbs) {
+			[self.mapView removeOverlay:self->crumbs];
+			[self.mapView addOverlay:self->crumbs];
+		}
+	}];
+	UIAlertAction* smoothOffBtn = [UIAlertAction actionWithTitle:OPTION_SMOOTH_PATHS_OFF style:UIAlertActionStyleDefault handler:^(UIAlertAction* action) {
+		[Preferences setSmoothPaths:false];
+		// Reset the renderer to apply the new setting
+		self->crumbRenderer = nil;
+		if (self->crumbs) {
+			[self.mapView removeOverlay:self->crumbs];
+			[self.mapView addOverlay:self->crumbs];
+		}
+	}];
+
 	UIAlertAction* mapStd = [UIAlertAction actionWithTitle:OPTION_STANDARD_VIEW style:UIAlertActionStyleDefault handler:^(UIAlertAction* action) {
 		self->mapView.mapType = MKMapTypeStandard;
 	}];
@@ -413,6 +443,8 @@
 	}]];
 	[alertController addAction:onBtn];
 	[alertController addAction:offBtn];
+	[alertController addAction:smoothOnBtn];
+	[alertController addAction:smoothOffBtn];
 	[alertController addAction:mapStd];
 	[alertController addAction:mapSat];
 	[alertController addAction:mapHybrid];
@@ -425,6 +457,14 @@
 	else
 	{
 		[self checkActionSheetButton:offBtn];
+	}
+	if ([Preferences shouldSmoothPaths])
+	{
+		[self checkActionSheetButton:smoothOnBtn];
+	}
+	else
+	{
+		[self checkActionSheetButton:smoothOffBtn];
 	}
 	switch (self->mapView.mapType)
 	{

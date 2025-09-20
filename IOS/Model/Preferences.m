@@ -14,6 +14,7 @@
 #define PREF_NAME_UUID                                  "UUID"
 #define PREF_NAME_UNITS                                 "Units"
 #define PREF_NAME_AUTOSCALE_MAP                         "Autoscale Map"
+#define PREF_NAME_SMOOTH_PATHS                          "Smooth Paths"
 #define PREF_NAME_SCAN_FOR_SENSORS                      "Scan for Sensors"
 #define PREF_NAME_BROADCAST_TO_SERVER                   "Broadcast Global"
 #define PREF_NAME_BROADCAST_USER_NAME                   "Broadcast User Name"
@@ -159,6 +160,15 @@
 		return [self readBooleanValue:@PREF_NAME_AUTOSCALE_MAP];
 	}
 	return TRUE;
+}
+
++ (BOOL)shouldSmoothPaths
+{
+	if ([self keyExists:@PREF_NAME_SMOOTH_PATHS])
+	{
+		return [self readBooleanValue:@PREF_NAME_SMOOTH_PATHS];
+	}
+	return FALSE; // Default to no smoothing for backward compatibility
 }
 
 + (BOOL)shouldScanForSensors
@@ -352,6 +362,11 @@
 + (void)setAutoScaleMap:(BOOL)value
 {
 	[self writeBoolValue:@PREF_NAME_AUTOSCALE_MAP withValue:value];
+}
+
++ (void)setSmoothPaths:(BOOL)value
+{
+	[self writeBoolValue:@PREF_NAME_SMOOTH_PATHS withValue:value];
 }
 
 + (void)setScanForSensors:(BOOL)value
